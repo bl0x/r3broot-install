@@ -11,10 +11,17 @@
 set -e
 set -u
 
-r3broot_version=$1
 r3broot_versions=('trunk' 'sep12' 'apr13' 'feb14')
 fairsoft_versions=('jul15p2' 'jul14p3' 'jul14p3' 'jul14p3')
 fairroot_versions=('v-15.07' 'v-14.11' 'v-14.11' 'v-14.11')
+
+if [ $# -ne 1 ] ; then
+  echo "Usage $0 <r3broot version>"
+  echo "Available: ${r3broot_versions[*]}"
+  exit
+fi
+
+r3broot_version=$1
 
 function die { echo -e $1; exit; }
 function join { local IFS="$1"; shift; echo "$*"; }
@@ -110,20 +117,17 @@ else
 		|| die "FAILED\nCould not checkout the sources from github"
 	echo "DONE"
 fi
-cd $CWD/$srcdir/$fairroot_version
-git checkout tags/$fairroot_version || die "Could not checkout tag"
-cd $CWD/$srcdir
+cd $CWD/$srcdir/$fairsoft_version
+git checkout tags/$fairsoft_version || die "Could not checkout tag"
 
 # Build
 installdir=$CWD/fairsoft_install/$fairsoft_version
 echo "FAIRSOFT Creating install directory $CWD/$installdir"
 cd $CWD
 mkdir -p $installdir
-cd $installdir
+cd $CWD/$srcdir/$fairsoft_version
 
-echo "FAIRSOFT Running configure..."
-./configure << EOF
-compiler=gcc
+FAIRSOFT_OPTIONS="compiler=gcc
 debug=yes
 optimize=no
 geant4_download_install_data_automatic=yes
@@ -131,8 +135,14 @@ geant4_install_data_from_dir=no
 build_python=no
 install_sim=yes
 build_root6=no
-SIMPATH_INSTALL=$installdir
-EOF
+SIMPATH_INSTALL=$installdir"
+
+echo "Fairsoft Options:"
+echo ${FAIRSOFT_OPTIONS[*]}
+echo $FAIRSOFT_OPTIONS | tr ' ' '\n' > configure.in
+
+echo "FAIRSOFT Running configure..."
+./configure.sh configure.in
 
 cd $CWD
 echo "FAIRROOT Finished"
@@ -141,6 +151,8 @@ echo "FAIRROOT Finished"
 export FAIRSOFT_PATH=$installdir
 
 else # NEED_FAIRSOFT
+
+export FAIRSOFT_PATH=$CVMFS_FAIRSOFT
 
 fi # NEED_FAIRSOFT
 
