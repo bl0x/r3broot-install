@@ -13,8 +13,8 @@ set -u
 
 r3broot_version=$1
 r3broot_versions=('trunk' 'sep12' 'apr13' 'feb14')
-fairsoft_versions=('jul14p3' 'jul14p3' 'jul14p3' 'jul14p3')
-fairroot_versions=('v-14.11' 'v-14.11' 'v-14.11' 'v-14.11')
+fairsoft_versions=('jul15p2' 'jul14p3' 'jul14p3' 'jul14p3')
+fairroot_versions=('v-15.07' 'v-14.11' 'v-14.11' 'v-14.11')
 
 function die { echo -e $1; exit; }
 function join { local IFS="$1"; shift; echo "$*"; }
@@ -45,12 +45,110 @@ echo "Selected corresponding fairsoft version $fairsoft_version"
 fairroot_version=${fairroot_versions[i]}
 echo "Selected corresponding fairroot version $fairroot_version"
 
+# Check, if we have access to cvmfs
+if [ -d "/cvmfs" ] ; then
+  HAS_CVMFS=1
+else
+  HAS_CVMFS=0
+fi
+
+# Set up cvmfs paths
+if [ "$r3broot_version" != "trunk" ] ; then
+  CVMFS_FAIRSOFT=/cvmfs/fairroot.gsi.de/fairsoft/$fairsoft_version
+  CVMFS_FAIRROOT=/cvmfs/fairroot.gsi.de/fairroot/${fairroot_version}_fairsoft-$fairsoft_version
+else
+  CVMFS_FAIRSOFT=/cvmfs/fairroot.gsi.de/gcc_4.8.4/fairsoft/$fairsoft_version
+  CVMFS_FAIRROOT=/cvmfs/fairroot.gsi.de/gcc_4.8.4/fairroot/${fairroot_version}_fairsoft-$fairsoft_version
+fi
+
+# Check what we need to compile
+NEED_FAIRSOFT=0
+NEED_FAIRROOT=0
+if [ "$HAS_CVMFS" -eq "0" ] ; then
+  NEED_FAIRSOFT=1
+  NEED_FAIRROOT=1
+  export FAIRSOFT_PATH=$CVMFS_FAIRSOFT
+  export FAIRROOT_PATH=$CVMFS_FAIRROOT
+else
+  if [ ! -d $CVMFS_FAIRSOFT ] ; then
+    NEED_FAIRSOFT=1
+  fi
+  if [ ! -d $CVMFS_FAIRROOT ] ; then
+    NEED_FAIRROOT=1
+  fi
+fi
+
 # Export SIMPATH
 export SIMPATH=/cvmfs/fairroot.gsi.de/fairsoft/$fairsoft_version
 
+# ------------------------------------------------------------------
+
+if [ "$NEED_FAIRSOFT" -eq "1" ] ; then
+# Install FAIRSOFT
+echo "Installing FAIRSOFT"
+
+# Make the source directory
+ok="y"
+srcdir=fairsoft
+echo "Sources are placed in a directory '$srcdir/$fairsoft_version' inside the current dir."
+echo -n "OK? [Y/n]"
+read ok
+if [ "$ok" != "y" ] && [ ! -z $ok ] ; then
+	die "Aborting..."
+fi
+
+mkdir -p $srcdir
+cd $CWD/$srcdir
+
+# Get the source
+gitpath=https://github.com/FairRootGroup/FairSoft
+if [ -d "$fairsoft_version" ] ; then
+	echo "Source dir $fairsoft_version already exists."
+else
+	echo -n "FAIRSOFT This will take a few minutes..."
+	git clone -q -b "$fairsoft_version" $gitpath $fairsoft_version \
+		|| die "FAILED\nCould not checkout the sources from github"
+	echo "DONE"
+fi
+cd $CWD/$srcdir/$fairroot_version
+git checkout tags/$fairroot_version || die "Could not checkout tag"
+cd $CWD/$srcdir
+
+# Build
+installdir=$CWD/fairsoft_install/$fairsoft_version
+echo "FAIRSOFT Creating install directory $CWD/$installdir"
+cd $CWD
+mkdir -p $installdir
+cd $installdir
+
+echo "FAIRSOFT Running configure..."
+./configure << EOF
+compiler=gcc
+debug=yes
+optimize=no
+geant4_download_install_data_automatic=yes
+geant4_install_data_from_dir=no
+build_python=no
+install_sim=yes
+build_root6=no
+SIMPATH_INSTALL=$installdir
+EOF
+
+cd $CWD
+echo "FAIRROOT Finished"
+
+# Export SIMPATH
+export FAIRSOFT_PATH=$installdir
+
+else # NEED_FAIRSOFT
+
+fi # NEED_FAIRSOFT
+
+export SIMPATH=$FAIRSOFT_PATH
 
 # ------------------------------------------------------------------
 
+if [ "$NEED_FAIRROOT" -eq "1" ] ; then
 # Install FAIRROOT
 echo "Installing FAIRROOT"
 
@@ -65,7 +163,6 @@ if [ "$ok" != "y" ] && [ ! -z $ok ] ; then
 fi
 
 mkdir -p $srcdir
-
 cd $CWD/$srcdir
 
 # Get the source
@@ -107,7 +204,16 @@ cd $CWD
 echo "FAIRROOT Finished"
 
 # Export FAIRROOTPATH
-export FAIRROOTPATH=$CWD/fairroot_install/$fairroot_version
+
+export FAIRROOT_PATH=$installdir
+
+else # NEED_FAIRROOT
+
+export FAIRROOT_PATH=$CVMFS_FAIRROOT
+
+fi # NEED_FAIRROOT
+
+export FAIRROOTPATH=$FAIRROOT_PATH
 
 # ------------------------------------------------------------------
 
@@ -165,8 +271,8 @@ echo "#  Add the following lines to your ~/.profile"
 echo "\\  -------------------------------------------/"
 echo ""
 echo "# BEGIN setup R3BROOT"
-echo "export FAIRROOTPATH=$CWD/fairroot_install/$fairroot_version"
-echo "export SIMPATH=/cvmfs/fairroot.gsi.de/fairsoft/$fairsoft_version"
+echo "export FAIRROOTPATH=$FAIRROOTPATH"
+echo "export SIMPATH=$SIMPATH"
 echo "source $builddir/config.sh"
 echo "# END setup R3BROOT"
 echo ""
