@@ -205,7 +205,7 @@ cmake -DCMAKE_INSTALL_PREFIX="$installdir" $CWD/$srcdir/$fairroot_version \
 	|| die "cmake FAILED"
 
 echo "FAIRROOT Running make"
-make -j || die "make FAILED"
+make -j$(nproc) || die "make FAILED"
 
 # Install
 mkdir -p $installdir
@@ -272,6 +272,9 @@ cmake $CWD/$srcdir/$r3broot_version || die "cmake FAILED"
 echo "R3BROOT Running make"
 make -j || die "make FAILED"
 
+export R3BROOT_BUILD_DIR=$builddir
+export R3BROOT_SOURCE_DIR=$CWD/$srcdir/$r3broot_version
+
 cd $CWD
 echo "R3BROOT Finished"
 
@@ -285,7 +288,9 @@ echo ""
 echo "# BEGIN setup R3BROOT"
 echo "export FAIRROOTPATH=$FAIRROOTPATH"
 echo "export SIMPATH=$SIMPATH"
-echo "source $builddir/config.sh"
+echo "export R3BROOT_BUILD_DIR=$R3BROOT_BUILD_DIR"
+echo "export R3BROOT_SOURCE_DIR=$R3BROOT_SOURCE_DIR"
+echo "source $R3BROOT_BUILD_DIR/config.sh"
 echo "# END setup R3BROOT"
 echo ""
 echo "/  -------------------------------------------\\"
