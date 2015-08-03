@@ -1,7 +1,7 @@
 ## Description
 
-Use this script to install the r3broot simulation toolkit.
-It will also install its dependencies fairsoft and fairrot.
+Use this script to install the (r3broot)[http://r3broot.gsi.de/] simulation toolkit.
+It will also install its dependencies fairsoft and (fairroot)[https://fairroot.gsi.de/].
 
 ## Installation
 ```
