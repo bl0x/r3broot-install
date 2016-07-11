@@ -65,13 +65,8 @@ else
 fi
 
 # Set up cvmfs paths
-if [ "$r3broot_version" != "git" ] ; then
-  CVMFS_FAIRSOFT=/cvmfs/fairroot.gsi.de/fairsoft/${fairsoft_version}
-  CVMFS_FAIRROOT=/cvmfs/fairroot.gsi.de/fairroot/${fairroot_version}_fairsoft-$fairsoft_version
-else
-  CVMFS_FAIRSOFT=/cvmfs/fairroot.gsi.de/gcc_4.8.4/fairsoft/${fairsoft_version}_root6
-  CVMFS_FAIRROOT=/cvmfs/fairroot.gsi.de/gcc_4.8.4/fairroot/${fairroot_version}_fairsoft-${fairsoft_version}_root6
-fi
+CVMFS_FAIRSOFT=/cvmfs/fairroot.gsi.de/gcc_4.8.4/fairsoft/${fairsoft_version}_root6
+CVMFS_FAIRROOT=/cvmfs/fairroot.gsi.de/gcc_4.8.4/fairroot/${fairroot_version}_fairsoft-${fairsoft_version}_root6
 
 # Check what we need to compile
 NEED_FAIRSOFT=0
@@ -95,6 +90,10 @@ export SIMPATH=/cvmfs/fairroot.gsi.de/fairsoft/$fairsoft_version
 
 # Check that requested CVMFS installations exist.
 if [ "$HAS_CVMFS" -eq "1" ] ; then
+	module use /cvmfs/it.gsi.de/modulefiles/
+	module load compiler/gcc/4.8.4
+	export CC=gcc
+	export CXX=g++
 	if [ ! -d $CVMFS_FAIRSOFT ] ; then
 		die "Could not find '$CVMFS_FAIRSOFT' installation!"
 	fi
@@ -248,6 +247,7 @@ export FAIRROOTPATH=$FAIRROOT_PATH
 
 echo "Installing R3BROOT"
 
+set +u
 if [ -z "$UCESB_DIR" ] ; then
 	echo "Do you want to have ucesb support in R3BRoot?"
 	echo "Then you want to set the UCESB_DIR environment variable to"
@@ -255,6 +255,7 @@ if [ -z "$UCESB_DIR" ] ; then
 	echo "Continue without ucesb? Ctrl-C to stop."
 	read ok
 fi
+set -u
 
 # Make the source directory
 ok="y"
