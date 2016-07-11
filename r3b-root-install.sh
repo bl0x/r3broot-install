@@ -11,9 +11,9 @@
 set -e
 set -u
 
-r3broot_versions=('trunk' 'sep12' 'apr13' 'feb14')
-fairsoft_versions=('jul15p2' 'jul14p3' 'jul14p3' 'jul14p3')
-fairroot_versions=('v-15.07' 'v-14.11' 'v-14.11' 'v-14.11')
+r3broot_versions=('git' 'git' 'git')
+fairsoft_versions=('may16' 'nov15p6' 'nov15p1')
+fairroot_versions=('v-16.06' 'v-15.11d' 'v-15.11d')
 
 if [ $# -ne 1 ] ; then
   echo "Usage $0 <r3broot version>"
@@ -60,12 +60,12 @@ else
 fi
 
 # Set up cvmfs paths
-if [ "$r3broot_version" != "trunk" ] ; then
-  CVMFS_FAIRSOFT=/cvmfs/fairroot.gsi.de/fairsoft/$fairsoft_version
+if [ "$r3broot_version" != "git" ] ; then
+  CVMFS_FAIRSOFT=/cvmfs/fairroot.gsi.de/fairsoft/${fairsoft_version}
   CVMFS_FAIRROOT=/cvmfs/fairroot.gsi.de/fairroot/${fairroot_version}_fairsoft-$fairsoft_version
 else
-  CVMFS_FAIRSOFT=/cvmfs/fairroot.gsi.de/gcc_4.8.4/fairsoft/$fairsoft_version
-  CVMFS_FAIRROOT=/cvmfs/fairroot.gsi.de/gcc_4.8.4/fairroot/${fairroot_version}_fairsoft-$fairsoft_version
+  CVMFS_FAIRSOFT=/cvmfs/fairroot.gsi.de/gcc_4.8.4/fairsoft/${fairsoft_version}_root6
+  CVMFS_FAIRROOT=/cvmfs/fairroot.gsi.de/gcc_4.8.4/fairroot/${fairroot_version}_fairsoft-${fairsoft_version}_root6
 fi
 
 # Check what we need to compile
@@ -87,6 +87,16 @@ fi
 
 # Export SIMPATH
 export SIMPATH=/cvmfs/fairroot.gsi.de/fairsoft/$fairsoft_version
+
+# Check that requested CVMFS installations exist.
+if [ "$HAS_CVMFS" -eq "1" ] ; then
+	if [ ! -d $CVMFS_FAIRSOFT ] ; then
+		die "Could not find '$CVMFS_FAIRSOFT' installation!"
+	fi
+	if [ ! -d $CVMFS_FAIRROOT ] ; then
+		die "Could not find '$CVMFS_FAIRROOT' installation!"
+	fi
+fi
 
 # ------------------------------------------------------------------
 
@@ -133,8 +143,8 @@ optimize=no
 geant4_download_install_data_automatic=yes
 geant4_install_data_from_dir=no
 build_python=no
+build_root6=yes
 install_sim=yes
-build_root6=no
 SIMPATH_INSTALL=$installdir"
 
 echo "Fairsoft Options:"
@@ -233,33 +243,38 @@ export FAIRROOTPATH=$FAIRROOT_PATH
 
 echo "Installing R3BROOT"
 
+if [ -z "$UCESB_DIR" ] ; then
+	echo "Do you want to have ucesb support in R3BRoot?"
+	echo "Then you want to set the UCESB_DIR environment variable to"
+	echo "point to your 'unpacker' directory!"
+	echo "Continue without ucesb? Ctrl-C to stop."
+	read ok
+fi
+
 # Make the source directory
 ok="y"
-srcdir=r3broot
-echo "Sources are placed in a directory '$srcdir/$r3broot_version' inside the current dir."
+srcdir=R3BRoot
+echo "Sources are placed in a directory '$srcdir' inside the current dir."
 echo -n "OK? [Y/n]"
 read ok
 if [ "$ok" != "y" ] && [ ! -z $ok ] ; then
 	die "Aborting..."
 fi
 
-mkdir -p $srcdir
-
-CWD=$(pwd)
-cd $srcdir
+cd $CWD
 
 # Get the source
+gitpath=http://github.com/R3BRootGroup/R3BRoot
 echo -n "R3BROOT This will take a few minutes..."
-svnpath=https://subversion.gsi.de/fairroot/r3broot
-if [ "$r3broot_version" != "trunk" ] ; then
-	svnpath=$svnpath/release
-fi
-svn co -q $svnpath/$r3broot_version $r3broot_version \
-	|| die "FAILED\nCould not checkout the sources from SVN"
+git clone -q $gitpath \
+	|| die "FAILED\nCould not checkout the sources from github"
 echo "DONE"
 
+cd $CWD/$srcdir
+git checkout dev || die "Could not checkout dev branch"
+
 # Build
-builddir=r3broot_build/$r3broot_version
+builddir=R3BRoot/build
 echo "R3BROOT Creating build directory $CWD/$builddir"
 
 cd $CWD
@@ -267,7 +282,7 @@ mkdir -p $builddir
 cd $builddir
 
 echo "R3BROOT Running cmake..."
-cmake $CWD/$srcdir/$r3broot_version || die "cmake FAILED"
+cmake $CWD/$srcdir || die "cmake FAILED"
 
 echo "R3BROOT Running make"
 make -j || die "make FAILED"
