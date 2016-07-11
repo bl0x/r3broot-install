@@ -11,7 +11,7 @@
 set -e
 set -u
 
-r3broot_versions=('git' 'git' 'git')
+r3broot_versions=('git-may16' 'git-nov15p6' 'git-nov15p1')
 fairsoft_versions=('may16' 'nov15p6' 'nov15p1')
 fairroot_versions=('v-16.06' 'v-15.11d' 'v-15.11d')
 
