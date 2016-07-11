@@ -22,6 +22,7 @@ if [ $# -ne 1 ] ; then
 fi
 
 r3broot_version=$1
+echo $r3broot_version
 
 function die { echo -e $1; exit; }
 function join { local IFS="$1"; shift; echo "$*"; }
@@ -37,7 +38,9 @@ fi
 # Do we have a suitable version?
 ok=0
 i=0
+set +e
 for v in ${r3broot_versions[@]} ; do
+	echo "Testing $v"
 	if [ "$v" == "$r3broot_version" ] ; then
 		ok=1
 		break
@@ -47,6 +50,8 @@ done
 if [ $ok -eq 0 ] ; then
 	die "Not a supported version $r3broot_version"
 fi
+set -e
+
 fairsoft_version=${fairsoft_versions[i]}
 echo "Selected corresponding fairsoft version $fairsoft_version"
 fairroot_version=${fairroot_versions[i]}
