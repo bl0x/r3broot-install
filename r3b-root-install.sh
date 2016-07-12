@@ -271,10 +271,14 @@ cd $CWD
 
 # Get the source
 gitpath=http://github.com/R3BRootGroup/R3BRoot
-echo -n "R3BROOT This will take a few minutes..."
-git clone -q $gitpath \
-	|| die "FAILED\nCould not checkout the sources from github"
-echo "DONE"
+if [ -d $srcdir ] ; then
+  echo "R3BROOT source dir already exists."
+else
+  echo -n "R3BROOT This will take a few minutes..."
+  git clone -q $gitpath \
+  	|| die "FAILED\nCould not checkout the sources from github"
+  echo "DONE"
+fi
 
 cd $CWD/$srcdir
 git checkout dev || die "Could not checkout dev branch"
